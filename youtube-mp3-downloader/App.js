@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { View, TextInput, Button, Text, StyleSheet } from "react-native";
 import axios from "axios";
-import * as FileSystem from "expo-file-system";
 
 export default function App() {
   const [url, setUrl] = useState("");
@@ -11,14 +10,23 @@ export default function App() {
     if (!url) return setMessage("Введите ссылку на YouTube");
 
     try {
-      const response = await axios.post("http://26.27.56.35:5000/download", { url }, { responseType: "blob" });
+      const response = await axios.post("http://26.27.56.35:5000/download", { url }, { responseType: "arraybuffer" });
 
-      const fileUri = FileSystem.documentDirectory + "downloaded_audio.mp3";
-      await FileSystem.writeAsStringAsync(fileUri, response.data, { encoding: FileSystem.EncodingType.Base64 });
+      // Преобразуем бинарные данные в Blob
+      const blob = new Blob([response.data], { type: "audio/mp3" });
+
+      // Для веба создаем ссылку для скачивания
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.setAttribute("download", "downloaded_audio.mp3");
+      document.body.appendChild(link);
+      link.click();
 
       setMessage("Файл загружен!");
     } catch (error) {
       setMessage("Ошибка загрузки");
+      console.error("Download error:", error);
     }
   };
 
