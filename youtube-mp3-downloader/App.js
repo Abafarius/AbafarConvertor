@@ -11,24 +11,32 @@ import axios from "axios";
 
 // Компонент анимированного заголовка с появлением букв
 const AnimatedTitle = () => {
-  const title = "MP3 Magic Downloader".split(""); // Разбиваем заголовок на буквы
+  const title = "MP3 Magic Downloader".split("");
   const animValues = useRef(title.map(() => new Animated.Value(0))).current;
+  const containerOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Создаём последовательность анимаций для каждой буквы
-    const animations = animValues.map((anim, index) =>
-      Animated.timing(anim, {
+    Animated.sequence([
+      Animated.timing(containerOpacity, {
         toValue: 1,
-        duration: 300,
-        delay: index * 50, // Задержка для последовательного появления
+        duration: 100,
         useNativeDriver: false,
-      })
-    );
-    Animated.stagger(50, animations).start();
+      }),
+      Animated.stagger(
+        50,
+        animValues.map((anim) =>
+          Animated.timing(anim, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: false,
+          })
+        )
+      ),
+    ]).start();
   }, []);
 
   return (
-    <View style={styles.titleContainer}>
+    <Animated.View style={[styles.titleContainer, { opacity: containerOpacity }]}>
       {title.map((letter, index) => (
         <Animated.Text
           key={index}
@@ -40,17 +48,17 @@ const AnimatedTitle = () => {
                 {
                   translateY: animValues[index].interpolate({
                     inputRange: [0, 1],
-                    outputRange: [10, 0], // Плавное появление снизу вверх
+                    outputRange: [10, 0],
                   }),
                 },
               ],
             },
           ]}
         >
-          {letter === " " ? "\u00A0" : letter} {/* Пробелы как неразрывные */}
+          {letter === " " ? "\u00A0" : letter}
         </Animated.Text>
       ))}
-    </View>
+    </Animated.View>
   );
 };
 
@@ -96,7 +104,7 @@ const AnimatedInput = ({ onChangeText, value, placeholder }) => {
 
   const borderColor = borderAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["#CBD5E0", "#F5A623"], // От серого к золотистому
+    outputRange: ["#CBD5E0", "#F5A623"],
   });
 
   return (
@@ -144,7 +152,7 @@ export default function App() {
   const [status, setStatus] = useState("");
   const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
-  const serverUrl = "http://26.27.56.35:5000"; // Адрес сервера
+  const serverUrl = "http://26.27.56.35:5000";
 
   const downloadMp3 = async () => {
     if (!url) {
@@ -214,32 +222,39 @@ export default function App() {
         <AnimatedButton onPress={clearInput} isLoading={isLoading} title="Очистить" />
       </View>
       {progress > 0 && <ProgressBar progress={progress} />}
-      <Animated.View style={styles.statusContainer}>
-        <Text style={[styles.status, status.includes("Ошибка") ? styles.error : styles.success]}>
-          {status}
-        </Text>
-      </Animated.View>
+      {status ? ( // Условный рендеринг: показываем только если есть текст
+        <Animated.View style={styles.statusContainer}>
+          <Text style={[styles.status, status.includes("Ошибка") ? styles.error : styles.success]}>
+            {status}
+          </Text>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
 
-// Стили с новой цветовой палитрой
+// Стили
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#E8ECEF", // Светло-серый фон
+    backgroundColor: "#E8ECEF",
     padding: 20,
   },
   titleContainer: {
     flexDirection: "row",
     marginBottom: 40,
+    position: "relative",
+    backgroundColor: "transparent",
+    zIndex: 10,
   },
   title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#4A90E2", // Синий для заголовка
+    fontSize: 34,
+    fontFamily: "Georgia",
+    fontStyle: "italic",
+    fontWeight: "600",
+    color: "#4A90E2",
   },
   inputContainer: {
     width: "90%",
@@ -248,20 +263,22 @@ const styles = StyleSheet.create({
     marginBottom: 25,
     backgroundColor: "#FFFFFF",
     elevation: 5,
+    zIndex: 5,
   },
   input: {
     padding: 15,
     fontSize: 16,
-    color: "#2D3748", // Тёмно-серый текст
+    color: "#2D3748",
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     width: "90%",
     marginBottom: 20,
+    zIndex: 5,
   },
   button: {
-    backgroundColor: "#4A90E2", // Синий для кнопок
+    backgroundColor: "#4A90E2",
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 25,
@@ -269,7 +286,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: "#A3BFFA", // Светло-синий для отключённых кнопок
+    backgroundColor: "#A3BFFA",
   },
   buttonText: {
     color: "#FFFFFF",
@@ -280,31 +297,33 @@ const styles = StyleSheet.create({
   progressContainer: {
     width: "90%",
     height: 10,
-    backgroundColor: "#CBD5E0", // Серый фон прогресс-бара
+    backgroundColor: "#CBD5E0",
     borderRadius: 5,
     overflow: "hidden",
     marginVertical: 10,
+    zIndex: 5,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#F5A623", // Золотистый прогресс
+    backgroundColor: "#F5A623",
   },
   statusContainer: {
     marginTop: 20,
     padding: 10,
     borderRadius: 8,
     backgroundColor: "rgba(255, 255, 255, 0.9)",
+    zIndex: 5,
   },
   status: {
     fontSize: 16,
     fontWeight: "500",
     textAlign: "center",
-    color: "#2D3748", // Тёмно-серый текст статуса
+    color: "#2D3748",
   },
   error: {
-    color: "#E53E3E", // Красный для ошибок
+    color: "#E53E3E",
   },
   success: {
-    color: "#38A169", // Зелёный для успеха
+    color: "#38A169",
   },
 });
