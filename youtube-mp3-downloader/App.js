@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   TextInput,
@@ -9,24 +9,48 @@ import {
 } from "react-native";
 import axios from "axios";
 
-// Компонент анимированного заголовка
+// Компонент анимированного заголовка с появлением букв
 const AnimatedTitle = () => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const title = "MP3 Magic Downloader".split(""); // Разбиваем заголовок на буквы
+  const animValues = useRef(title.map(() => new Animated.Value(0))).current;
 
-  React.useEffect(() => {
-    // Запускаем бесконечную анимацию пульсации заголовка
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(fadeAnim, { toValue: 1, duration: 1000, useNativeDriver: false }),
-        Animated.timing(fadeAnim, { toValue: 0.7, duration: 1000, useNativeDriver: false }),
-      ])
-    ).start();
+  useEffect(() => {
+    // Создаём последовательность анимаций для каждой буквы
+    const animations = animValues.map((anim, index) =>
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 300,
+        delay: index * 50, // Задержка для последовательного появления
+        useNativeDriver: false,
+      })
+    );
+    Animated.stagger(50, animations).start();
   }, []);
 
   return (
-    <Animated.View style={[styles.titleContainer, { opacity: fadeAnim }]}>
-      <Text style={styles.title}>🎵 MP3 Magic Downloader</Text>
-    </Animated.View>
+    <View style={styles.titleContainer}>
+      {title.map((letter, index) => (
+        <Animated.Text
+          key={index}
+          style={[
+            styles.title,
+            {
+              opacity: animValues[index],
+              transform: [
+                {
+                  translateY: animValues[index].interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [10, 0], // Плавное появление снизу вверх
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          {letter === " " ? "\u00A0" : letter} {/* Пробелы как неразрывные */}
+        </Animated.Text>
+      ))}
+    </View>
   );
 };
 
@@ -62,8 +86,7 @@ const AnimatedInput = ({ onChangeText, value, placeholder }) => {
   const [isFocused, setIsFocused] = useState(false);
   const borderAnim = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
-    // Анимация изменения цвета границы при фокусе
+  useEffect(() => {
     Animated.timing(borderAnim, {
       toValue: isFocused ? 1 : 0,
       duration: 200,
@@ -73,7 +96,7 @@ const AnimatedInput = ({ onChangeText, value, placeholder }) => {
 
   const borderColor = borderAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["#ddd", "#ff6f61"],
+    outputRange: ["#CBD5E0", "#F5A623"], // От серого к золотистому
   });
 
   return (
@@ -81,7 +104,7 @@ const AnimatedInput = ({ onChangeText, value, placeholder }) => {
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        placeholderTextColor="#aaa"
+        placeholderTextColor="#A0AEC0"
         onChangeText={onChangeText}
         value={value}
         onFocus={() => setIsFocused(true)}
@@ -95,8 +118,7 @@ const AnimatedInput = ({ onChangeText, value, placeholder }) => {
 const ProgressBar = ({ progress }) => {
   const widthAnim = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
-    // Анимация ширины прогресс-бара
+  useEffect(() => {
     Animated.timing(widthAnim, {
       toValue: progress,
       duration: 300,
@@ -124,7 +146,6 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const serverUrl = "http://26.27.56.35:5000"; // Адрес сервера
 
-  // Функция скачивания MP3
   const downloadMp3 = async () => {
     if (!url) {
       setStatus("Пожалуйста, введите ссылку!");
@@ -136,14 +157,12 @@ export default function App() {
     setStatus("Получаю информацию о видео...");
 
     try {
-      // Запрос информации о видео
       const infoResponse = await axios.get(`${serverUrl}/info?url=${encodeURIComponent(url)}`);
       const videoTitle = infoResponse.data.title || "audio";
 
       setProgress(20);
       setStatus("Конвертирую видео в MP3...");
 
-      // Запрос на скачивание
       const response = await axios.post(
         `${serverUrl}/download`,
         { url },
@@ -153,7 +172,6 @@ export default function App() {
       setProgress(60);
       setStatus("Скачиваю файл...");
 
-      // Создание и скачивание файла
       const blob = new Blob([response.data], { type: "audio/mp3" });
       const downloadUrl = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -176,7 +194,6 @@ export default function App() {
     }
   };
 
-  // Функция очистки поля ввода
   const clearInput = () => {
     setUrl("");
     setStatus("Поле очищено");
@@ -206,36 +223,36 @@ export default function App() {
   );
 }
 
-// Стили приложения
+// Стили с новой цветовой палитрой
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f0f4f8",
+    backgroundColor: "#E8ECEF", // Светло-серый фон
     padding: 20,
   },
   titleContainer: {
+    flexDirection: "row",
     marginBottom: 40,
   },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: "#ff6f61",
-    textShadow: "1px 1px 4px rgba(0, 0, 0, 0.2)",
+    color: "#4A90E2", // Синий для заголовка
   },
   inputContainer: {
     width: "90%",
     borderWidth: 2,
     borderRadius: 15,
     marginBottom: 25,
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     elevation: 5,
   },
   input: {
     padding: 15,
     fontSize: 16,
-    color: "#333",
+    color: "#2D3748", // Тёмно-серый текст
   },
   buttonContainer: {
     flexDirection: "row",
@@ -244,7 +261,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   button: {
-    backgroundColor: "#ff6f61",
+    backgroundColor: "#4A90E2", // Синий для кнопок
     paddingVertical: 12,
     paddingHorizontal: 25,
     borderRadius: 25,
@@ -252,10 +269,10 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   buttonDisabled: {
-    backgroundColor: "#ffb3ae",
+    backgroundColor: "#A3BFFA", // Светло-синий для отключённых кнопок
   },
   buttonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     textAlign: "center",
     fontSize: 16,
     fontWeight: "700",
@@ -263,14 +280,14 @@ const styles = StyleSheet.create({
   progressContainer: {
     width: "90%",
     height: 10,
-    backgroundColor: "#ddd",
+    backgroundColor: "#CBD5E0", // Серый фон прогресс-бара
     borderRadius: 5,
     overflow: "hidden",
     marginVertical: 10,
   },
   progressBar: {
     height: "100%",
-    backgroundColor: "#ff6f61",
+    backgroundColor: "#F5A623", // Золотистый прогресс
   },
   statusContainer: {
     marginTop: 20,
@@ -282,11 +299,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     textAlign: "center",
+    color: "#2D3748", // Тёмно-серый текст статуса
   },
   error: {
-    color: "#ff4444",
+    color: "#E53E3E", // Красный для ошибок
   },
   success: {
-    color: "#00cc00",
+    color: "#38A169", // Зелёный для успеха
   },
 });
