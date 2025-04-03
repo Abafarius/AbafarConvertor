@@ -6,37 +6,37 @@ import {
   Text,
   StyleSheet,
   Animated,
+  ImageBackground,
 } from "react-native";
 import axios from "axios";
+import { useFonts } from "expo-font";
+import * as Font from "expo-font";
 
-// Компонент анимированного заголовка с появлением букв
+const loadFonts = async () => {
+  await Font.loadAsync({
+    Papyrus: require("./assets/fonts/papyrus.ttf"),
+  });
+};
+
 const AnimatedTitle = () => {
-  const title = "MP3 Magic Downloader".split("");
+  const title = "MP3 Magic Converter".split("");
   const animValues = useRef(title.map(() => new Animated.Value(0))).current;
-  const containerOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(containerOpacity, {
-        toValue: 1,
-        duration: 100,
-        useNativeDriver: false,
-      }),
-      Animated.stagger(
-        50,
-        animValues.map((anim) =>
-          Animated.timing(anim, {
-            toValue: 1,
-            duration: 300,
-            useNativeDriver: false,
-          })
-        )
-      ),
-    ]).start();
+    Animated.stagger(
+      50,
+      animValues.map((anim) =>
+        Animated.timing(anim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        })
+      )
+    ).start();
   }, []);
 
   return (
-    <Animated.View style={[styles.titleContainer, { opacity: containerOpacity }]}>
+    <View style={styles.titleContainer}>
       {title.map((letter, index) => (
         <Animated.Text
           key={index}
@@ -48,7 +48,7 @@ const AnimatedTitle = () => {
                 {
                   translateY: animValues[index].interpolate({
                     inputRange: [0, 1],
-                    outputRange: [10, 0],
+                    outputRange: [20, 0],
                   }),
                 },
               ],
@@ -58,30 +58,38 @@ const AnimatedTitle = () => {
           {letter === " " ? "\u00A0" : letter}
         </Animated.Text>
       ))}
-    </Animated.View>
+    </View>
   );
 };
 
-// Компонент анимированной кнопки
-const AnimatedButton = ({ onPress, isLoading, title }) => {
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+const MagicButton = ({ onPress, isLoading, title }) => {
+  const floatAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(floatAnim, { toValue: 5, duration: 1000, useNativeDriver: false }),
+        Animated.timing(floatAnim, { toValue: 0, duration: 1000, useNativeDriver: false }),
+      ])
+    ).start();
+  }, []);
 
   const handlePressIn = () => {
-    Animated.spring(scaleAnim, { toValue: 0.95, friction: 5, useNativeDriver: false }).start();
+    Animated.spring(floatAnim, { toValue: 2, friction: 5, useNativeDriver: false }).start();
   };
 
   const handlePressOut = () => {
-    Animated.spring(scaleAnim, { toValue: 1, friction: 5, useNativeDriver: false }).start();
+    Animated.spring(floatAnim, { toValue: 0, friction: 5, useNativeDriver: false }).start();
   };
 
   return (
-    <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
+    <Animated.View style={[styles.buttonContainerFloat, { transform: [{ translateY: floatAnim }] }]}>
       <TouchableOpacity
         style={[styles.button, isLoading && styles.buttonDisabled]}
         onPress={isLoading ? null : onPress}
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
-        activeOpacity={0.9}
+        activeOpacity={0.8}
       >
         <Text style={styles.buttonText}>{title}</Text>
       </TouchableOpacity>
@@ -89,26 +97,25 @@ const AnimatedButton = ({ onPress, isLoading, title }) => {
   );
 };
 
-// Компонент поля ввода с анимацией фокуса
-const AnimatedInput = ({ onChangeText, value, placeholder }) => {
+const MagicInput = ({ onChangeText, value, placeholder }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const borderAnim = useRef(new Animated.Value(0)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(borderAnim, {
+    Animated.timing(glowAnim, {
       toValue: isFocused ? 1 : 0,
-      duration: 200,
+      duration: 300,
       useNativeDriver: false,
     }).start();
   }, [isFocused]);
 
-  const borderColor = borderAnim.interpolate({
+  const borderGlow = glowAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ["#CBD5E0", "#F5A623"],
+    outputRange: ["#4A90E2", "#D4AF37"],
   });
 
   return (
-    <Animated.View style={[styles.inputContainer, { borderColor }]}>
+    <Animated.View style={[styles.inputContainer, { borderColor: borderGlow }]}>
       <TextInput
         style={styles.input}
         placeholder={placeholder}
@@ -122,80 +129,71 @@ const AnimatedInput = ({ onChangeText, value, placeholder }) => {
   );
 };
 
-// Компонент прогресс-бара
-const ProgressBar = ({ progress }) => {
-  const widthAnim = useRef(new Animated.Value(0)).current;
+const MagicLoader = () => {
+  const spinAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.timing(widthAnim, {
-      toValue: progress,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  }, [progress]);
+    Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 2000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
 
-  const width = widthAnim.interpolate({
-    inputRange: [0, 100],
-    outputRange: ["0%", "100%"],
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
   });
 
   return (
-    <View style={styles.progressContainer}>
-      <Animated.View style={[styles.progressBar, { width }]} />
-    </View>
+    <Animated.View style={[styles.loader, { transform: [{ rotate: spin }] }]}>
+      <Text style={styles.loaderText}>✨</Text>
+    </Animated.View>
   );
 };
 
-// Главный компонент приложения
 export default function App() {
   const [url, setUrl] = useState("");
   const [status, setStatus] = useState("");
-  const [progress, setProgress] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [downloadUrl, setDownloadUrl] = useState(null);
+  const [videoTitle, setVideoTitle] = useState("magic_audio.mp3");
   const serverUrl = "http://26.27.56.35:5000";
+
+  const [fontsLoaded] = useFonts({
+    Papyrus: require("./assets/fonts/papyrus.ttf"),
+  });
+
+  if (!fontsLoaded) return null;
 
   const downloadMp3 = async () => {
     if (!url) {
-      setStatus("Пожалуйста, введите ссылку!");
+      setStatus("Введи магическую ссылку!");
       return;
     }
 
     setIsLoading(true);
-    setProgress(0);
-    setStatus("Получаю информацию о видео...");
+    setStatus("Взываем к древним силам...");
 
     try {
       const infoResponse = await axios.get(`${serverUrl}/info?url=${encodeURIComponent(url)}`);
-      const videoTitle = infoResponse.data.title || "audio";
+      setVideoTitle(infoResponse.data.title || "magic_audio.mp3");
 
-      setProgress(20);
-      setStatus("Конвертирую видео в MP3...");
-
+      setStatus("Преобразуем заклинание...");
       const response = await axios.post(
         `${serverUrl}/download`,
         { url },
         { responseType: "arraybuffer" }
       );
 
-      setProgress(60);
-      setStatus("Скачиваю файл...");
-
+      setStatus("Портал открыт!");
       const blob = new Blob([response.data], { type: "audio/mp3" });
       const downloadUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.setAttribute("download", `${videoTitle}.mp3`);
-      document.body.appendChild(link);
-      link.click();
-
-      setProgress(100);
-      setStatus("Готово! Файл загружен.");
-      setTimeout(() => {
-        setStatus("");
-        setProgress(0);
-      }, 2000);
+      setDownloadUrl(downloadUrl);
     } catch (error) {
-      setStatus(`Ошибка: ${error.message}`);
+      setStatus(`Ошибка заклинания: ${error.message}`);
       console.error("Download error:", error);
     } finally {
       setIsLoading(false);
@@ -204,126 +202,195 @@ export default function App() {
 
   const clearInput = () => {
     setUrl("");
-    setStatus("Поле очищено");
-    setProgress(0);
+    setStatus("Поле очищено магическим ветром");
+    setDownloadUrl(null);
     setTimeout(() => setStatus(""), 1500);
   };
 
   return (
-    <View style={styles.container}>
-      <AnimatedTitle />
-      <AnimatedInput
-        onChangeText={setUrl}
-        value={url}
-        placeholder="Вставьте ссылку на YouTube"
-      />
-      <View style={styles.buttonContainer}>
-        <AnimatedButton onPress={downloadMp3} isLoading={isLoading} title="Скачать" />
-        <AnimatedButton onPress={clearInput} isLoading={isLoading} title="Очистить" />
+    <ImageBackground
+      source={{ uri: "https://media.istockphoto.com/id/1405885287/video/nebula-background-loopable.jpg?s=640x640&k=20&c=B1RA_i39UxxFpMMUwutozU8cIPg1RYX5A2IOSBRqMZs=" }}
+      style={styles.background}
+    >
+      <View style={styles.container}>
+        <AnimatedTitle />
+        <MagicInput
+          onChangeText={setUrl}
+          value={url}
+          placeholder="Вставь ссылку на YouTube"
+        />
+        <View style={styles.buttonContainer}>
+          <MagicButton onPress={downloadMp3} isLoading={isLoading} title="Преобразовать" />
+          <MagicButton onPress={clearInput} isLoading={isLoading} title="Очистить" />
+        </View>
+        {isLoading && <MagicLoader />}
+        {status && (
+          <Animated.View style={styles.statusContainer}>
+            <Text style={[styles.status, status.includes("Ошибка") ? styles.error : styles.success]}>
+              {status}
+            </Text>
+          </Animated.View>
+        )}
+        {downloadUrl && (
+          <Animated.View style={styles.downloadPortal}>
+            <Text style={styles.portalText}>✨ Файл готов! ✨</Text>
+            <TouchableOpacity
+              style={styles.downloadButton}
+              onPress={() => {
+                const link = document.createElement("a");
+                link.href = downloadUrl;
+                link.download = `${videoTitle}.mp3`;
+                document.body.appendChild(link);
+                link.click();
+                setDownloadUrl(null);
+              }}
+            >
+              <Text style={styles.downloadButtonText}>Скачать MP3</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
       </View>
-      {progress > 0 && <ProgressBar progress={progress} />}
-      {status ? ( // Условный рендеринг: показываем только если есть текст
-        <Animated.View style={styles.statusContainer}>
-          <Text style={[styles.status, status.includes("Ошибка") ? styles.error : styles.success]}>
-            {status}
-          </Text>
-        </Animated.View>
-      ) : null}
-    </View>
+    </ImageBackground>
   );
 }
 
-// Стили
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    resizeMode: "cover",
+  },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#E8ECEF",
     padding: 20,
+    backgroundColor: "rgba(42, 27, 61, 0.8)",
   },
   titleContainer: {
     flexDirection: "row",
     marginBottom: 40,
-    position: "relative",
-    backgroundColor: "transparent",
-    zIndex: 10,
   },
   title: {
-    fontSize: 34,
-    fontFamily: "Georgia",
-    fontStyle: "italic",
-    fontWeight: "600",
-    color: "#4A90E2",
+    fontSize: 36,
+    fontFamily: "Papyrus",
+    color: "#D4AF37",
+    textShadowColor: "rgba(212, 175, 55, 0.5)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   inputContainer: {
-    width: "90%",
+    width: "95%", // Input длиннее
     borderWidth: 2,
-    borderRadius: 15,
-    marginBottom: 25,
-    backgroundColor: "#FFFFFF",
-    elevation: 5,
-    zIndex: 5,
+    borderRadius: 20,
+    marginBottom: 30,
+    backgroundColor: "rgba(15, 23, 42, 0.7)",
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
   },
   input: {
     padding: 15,
     fontSize: 16,
-    color: "#2D3748",
+    color: "#FFFFFF",
+    fontFamily: "Papyrus",
   },
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "90%",
+    width: "95%",
     marginBottom: 20,
-    zIndex: 5,
+  },
+  buttonContainerFloat: {
+    marginHorizontal: 15, // Больше пространства между кнопками
   },
   button: {
     backgroundColor: "#4A90E2",
     paddingVertical: 12,
     paddingHorizontal: 25,
-    borderRadius: 25,
-    marginHorizontal: 10,
-    elevation: 4,
+    borderRadius: 50,
+    borderWidth: 2,
+    borderColor: "#D4AF37",
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
   },
   buttonDisabled: {
     backgroundColor: "#A3BFFA",
+    borderColor: "#A0AEC0",
   },
   buttonText: {
     color: "#FFFFFF",
     textAlign: "center",
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 18,
+    fontFamily: "Papyrus",
   },
-  progressContainer: {
-    width: "90%",
-    height: 10,
-    backgroundColor: "#CBD5E0",
-    borderRadius: 5,
-    overflow: "hidden",
-    marginVertical: 10,
-    zIndex: 5,
+  loader: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 3,
+    borderColor: "#D4AF37",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 20,
   },
-  progressBar: {
-    height: "100%",
-    backgroundColor: "#F5A623",
+  loaderText: {
+    fontSize: 30,
+    color: "#D4AF37",
   },
   statusContainer: {
     marginTop: 20,
     padding: 10,
     borderRadius: 8,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
-    zIndex: 5,
+    backgroundColor: "rgba(15, 23, 42, 0.9)",
+    borderWidth: 1,
+    borderColor: "#4A90E2",
   },
   status: {
     fontSize: 16,
-    fontWeight: "500",
+    fontFamily: "Papyrus",
+    color: "#FFFFFF",
     textAlign: "center",
-    color: "#2D3748",
   },
   error: {
     color: "#E53E3E",
   },
   success: {
     color: "#38A169",
+  },
+  downloadPortal: {
+    marginTop: 20,
+    padding: 20,
+    borderRadius: 15,
+    backgroundColor: "rgba(42, 27, 61, 0.9)",
+    borderWidth: 2,
+    borderColor: "#D4AF37",
+    shadowColor: "#D4AF37",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 15,
+  },
+  portalText: {
+    fontSize: 20,
+    fontFamily: "Papyrus",
+    color: "#D4AF37",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  downloadButton: {
+    backgroundColor: "#D4AF37",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: "#4A90E2",
+  },
+  downloadButtonText: {
+    color: "#2A1B3D",
+    fontSize: 16,
+    fontFamily: "Papyrus",
+    textAlign: "center",
   },
 });
